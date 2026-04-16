@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Live Barcode Scanner</title>
+  <style>
+    body {
+      font-family: Arial;
+      text-align: center;
+    }
+    #container {
+      position: relative;
+      display: inline-block;
+    }
+    video {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 10px;
+      border: 2px solid black;
+    }
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 3px solid red;
+      box-sizing: border-box;
+      pointer-events: none;
+    }
+    #result {
+      margin-top: 15px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Live Camera Barcode Scanner</h2>
+
+<div id="container">
+  <video id="video" autoplay playsinline></video>
+  <div id="overlay"></div>
+</div>
+
+<div id="result">Starting camera...</div>
+
+<script>
+const video = document.getElementById("video");
+const result = document.getElementById("result");
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" }
+    });
+
+    video.srcObject = stream;
+
+    // Ensure video actually starts playing
+    await video.play();
+
+    result.textContent = "Camera ready. Point at a barcode.";
+    startScanning();
+
+  } catch (err) {
+    result.textContent = "Camera error: " + err.message;
+  }
+}
+
+async function startScanning() {
+  if (!("BarcodeDetector" in window)) {
+    result.textContent = "BarcodeDetector not supported.";
+    return;
+  }
+
+  const detector = new BarcodeDetector({
+    formats: ["ean_13", "code_128", "qr_code", "upc_a"]
+  });
+
+  async function scan() {
+    try {
+      const barcodes = await detector.detect(video);
+
+      if (barcodes.length > 0) {
+        result.textContent = "Detected: " + barcodes[0].rawValue;
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    requestAnimationFrame(scan);
+  }
+
+  scan();
+}
+
+startCamera();
+</script>
+
+</body>
+</html>
